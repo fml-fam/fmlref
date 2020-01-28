@@ -1,54 +1,85 @@
-#' mat class
+#' refmat class
 #' 
 #' Storage and methods for CPU matrix data.
 #' 
 #' @details
 #' Data is held in an external pointer.
 #' 
-#' @rdname mat-class
-#' @name mat-class
-matR6 = R6::R6Class("mat",
+#' @rdname refmat-class
+#' @name refmat-class
+refmatR6 = R6::R6Class("refmat",
   public = list(
     #' @details
     #' Class initializer. See also \code{?mat}.
     #' @param nrows,ncols The dimension of the matrix.
-    #' @param type Storage type for the matrix. Should be one of 'int', 'float', or 'double'.
+    #' @param type Storage type for the matrix. Should be one of 'int' or 'double'.
     initialize = function(nrows=0, ncols=0, type="double")
     {
+      type = match.arg(tolower(type), TYPES_STR)
+      
+      nrows = check_is_natnum(nrows)
+      ncols = check_is_natnum(ncols)
+      
+      private$type_str = type
+      private$type = type_str2int(type)
+      
       private$x = numeric(nrows*ncols)
       dim(private$x) = c(nrows, ncols)
-      private$type = type
     },
+    
+    
     
     #' @details
     #' Change the dimension of the matrix object.
     #' @param nrows,ncols The new dimension.
     resize = function(nrows, ncols)
     {
-      private$x # TODO
+      nrows = check_is_natnum(nrows)
+      ncols = check_is_natnum(ncols)
+      
+      private$x = numeric(nrows*ncols)
+      dim(private$x) = c(nrows, ncols)
       invisible(self)
     },
     
+    
+    
     #' @details
-    #' Set the data in the mat object to point to the array in 'data'. See
-    #' also \code{?as_mat}.
+    #' Set the data in the refmat object to point to the array in 'data'. See
+    #' also \code{?as_refmat}.
     #' @param data R matrix.
-    set = function(data)
+    inherit = function(data)
     {
+      if (!is.double(data))
+        storage.mode(data) = "double"
+      
       private$x = data
       invisible(self)
     },
+    
+    
+    
+    #' @details
+    #' Duplicate the matrix in a deep copy.
+    dupe = function()
+    {
+      self$clone(deep=TRUE)
+    },
+    
+    
     
     #' @details
     #' Print one-line information about the matrix.
     info = function()
     {
-      cat("# mat")
+      cat("# refmat")
       cat(sprintf(" %dx%d", nrow(private$x), ncol(private$x)))
       cat(" type=d")
       cat("\n")
       invisible(self)
     },
+    
+    
     
     #' @details
     #' Print the data.
@@ -59,6 +90,8 @@ matR6 = R6::R6Class("mat",
       invisible(self)
     },
     
+    
+    
     #' @details
     #' Fill all entries with zero.
     fill_zero = function()
@@ -67,13 +100,7 @@ matR6 = R6::R6Class("mat",
       invisible(self)
     },
     
-    #' @details
-    #' Fill all entries with one.
-    fill_one = function()
-    {
-      private$x[] = 1
-      invisible(self)
-    },
+    
     
     #' @details
     #' Fill all entries with supplied value.
@@ -84,6 +111,8 @@ matR6 = R6::R6Class("mat",
       invisible(self)
     },
     
+    
+    
     #' @details
     #' Fill the matrix (column-wise) with linearly-spaced values.
     #' @param start,stop Beginning/end of the linear spacing.
@@ -93,6 +122,8 @@ matR6 = R6::R6Class("mat",
       invisible(self)
     },
     
+    
+    
     #' @details
     #' Fill diagonal values to 1 and non-diagonal values to 0.
     fill_eye = function()
@@ -100,6 +131,26 @@ matR6 = R6::R6Class("mat",
       private$x = diag(1, nrow(private$x), ncol(private$x))
       invisible(self)
     },
+    
+    
+    
+    #' @details
+    #' Set diagonal entries of the matrix to those in the vector. If the vector
+    #' is smaller than the matrix diagonal, the vector will recycle until the
+    #' matrix diagonal is filled.
+    #' @param v A refvec object.
+    fill_diag = function(v)
+    {
+      if (!is_refvec(v))
+        v = as_refvec(v)
+      
+      check_type_consistency(self, v)
+      
+      private$x = diag(v$data_ptr())
+      invisible(self)
+    },
+    
+    
     
     #' @details
     #' Fill the matrix with random unifmorm data.
@@ -114,6 +165,8 @@ matR6 = R6::R6Class("mat",
       invisible(self)
     },
     
+    
+    
     #' @details
     #' Fill the matrix with random normal data.
     #' @param seed Seed for the generator. Can be left blank.
@@ -127,14 +180,36 @@ matR6 = R6::R6Class("mat",
       invisible(self)
     },
     
+    
+    
     #' @details
     #' Fill diagonal values to 1 and non-diagonal values to 0.
     diag = function()
     {
-      ret = vec()
+      ret = refvec()
       ret$set(diag(private$x))
       ret
     },
+    
+    
+    
+    #' @details
+    #' Fill diagonal values to 1 and non-diagonal values to 0.
+    antidiag = function()
+    {
+      m = nrow(private$x)
+      n = ncol(private$x)
+      minmn = min(m, n)
+      v = numeric(minmn)
+      for (i in 1:minmn)
+        v[i] = private$x[m-i+1, i]
+      
+      ret = refvec()
+      ret$inherit(v)
+      ret
+    },
+    
+    
     
     #' @details
     #' Scale all entries by the supplied value.
@@ -145,6 +220,8 @@ matR6 = R6::R6Class("mat",
       invisible(self)
     },
     
+    
+    
     #' @details
     #' Reverse rows.
     rev_rows = function()
@@ -152,6 +229,8 @@ matR6 = R6::R6Class("mat",
       private$x = private$x[nrow(private$x):1, ]
       invisible(self)
     },
+    
+    
     
     #' @details
     #' Reverse columns.
@@ -161,6 +240,78 @@ matR6 = R6::R6Class("mat",
       invisible(self)
     },
     
+    
+    
+    #' @details
+    #' Get element from the matrix.
+    #' @param i,j Indices (0-based).
+    get = function(i, j)
+    {
+      i = check_is_natnum(i)
+      j = check_is_natnum(j)
+      
+      private$x[i+1, j+1]
+    },
+    
+    
+    
+    #' @details
+    #' Set element of the matrix.
+    #' @param i,j Indices (0-based).
+    #' @param v Value.
+    set = function(i, j, v)
+    {
+      i = check_is_natnum(i)
+      j = check_is_natnum(j)
+      v = check_is_number(v)
+      
+      private$x[i+1, j+1] = v
+      invisible(self)
+    },
+    
+    
+    
+    #' @details
+    #' Get the specified row.
+    #' @param i Index (0-based).
+    #' @param v A refvec object.
+    get_row = function(i, v)
+    {
+      if (!is_refvec(v))
+        stop("'v' must be a refvec object")
+      
+      check_type_consistency(self, v)
+      
+      i = check_is_natnum(i)
+      v$inherit(private$x[i+1, ])
+      invisible(self)
+    },
+    
+    
+    
+    #' @details
+    #' Get the specified column.
+    #' @param j Index (0-based).
+    #' @param v A refvec object.
+    get_col = function(j, v)
+    {
+      if (!is_refvec(v))
+        stop("'v' must be a refvec object")
+      
+      check_type_consistency(self, v)
+      
+      j = check_is_natnum(j)
+      
+      v$inherit(private$x[, j+1])
+      invisible(self)
+    },
+    
+    
+    
+    #' @details
+    #' Returns number of rows and columns of the matrix.
+    dim = function() dim(private$x),
+    
     #' @details
     #' Returns number of rows of the matrix.
     nrows = function() nrow(private$x),
@@ -169,17 +320,27 @@ matR6 = R6::R6Class("mat",
     #' Returns number of columns of the matrix.
     ncols = function() ncol(private$x),
     
-    #' @details
-    #' Returns number of rows and columns of the matrix.
-    dim = function() dim(private$x),
+    
     
     #' @details
     #' Returns the external pointer data. For developers only.
     data_ptr = function() private$x,
     
     #' @details
+    #' Returns the integer code for the underlying storage type. For developers only.
+    get_type = function() private$type,
+    
+    #' @details
+    #' Returns the string code for the underlying storage type. For developers only.
+    get_type_str = function() private$type_str,
+    
+    
+    
+    #' @details
     #' Returns an R vector containing a copy of the class data.
     to_robj = function() private$x,
+    
+    
     
     #' @details
     #' Copies the values of the input to the class data. See also \code{?as_cpumat}.
@@ -193,50 +354,46 @@ matR6 = R6::R6Class("mat",
   
   private = list(
     x = NULL,
-    type = ""
+    type = -1L,
+    type_str = ""
   )
 )
 
 
 
-#' mat
+#' refmat
 #' 
-#' Constructor for mat objects.
+#' Constructor for refmat objects.
 #' 
 #' @details
 #' Data is held in an external pointer.
 #' 
 #' @param nrows,ncols The dimensions of the matrix.
-#' @param type Storage type for the matrix. Should be one of 'int', 'float', or 'double'.
-#' @return A mat class object.
+#' @param type Storage type for the matrix. Should be one of 'int' or 'double'.
+#' @return A refmat class object.
 #' 
 #' @seealso \code{\link{mat-class}}
 #' 
 #' @export
-mat = function(nrows=0, ncols=0, type="double")
+refmat = function(nrows=0, ncols=0, type="double")
 {
-  matR6$new(nrows=nrows, ncols=ncols, type=type)
+  refmatR6$new(nrows=nrows, ncols=ncols, type=type)
 }
 
 
 
-#' as_mat
+#' as_refmat
 #' 
-#' Convert an R matrix to a mat object.
+#' Convert an R matrix to a refmat object.
 #' 
 #' @param x R matrix.
 #' @param copy Should the R data be copied? If \code{FALSE}, be careful!
-#' @return A mat object.
+#' @return A refmat object.
 #' 
 #' @export
-as_mat = function(x, copy=TRUE)
+as_refmat = function(x)
 {
-  ret = mat()
-  
-  if (isTRUE(copy))
-    ret$from_robj(x)
-  else
-    ret$set(x)
-  
+  ret = refmat()
+  ret$from_robj(x)
   ret
 }

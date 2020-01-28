@@ -1,53 +1,81 @@
-#' vec class
+#' refvec class
 #' 
 #' Storage and methods for CPU vector data.
 #' 
 #' @details
 #' Data is held in an external pointer.
 #' 
-#' @rdname vec-class
-#' @name vec-class
-vecR6 = R6::R6Class("vec",
+#' @rdname refvec-class
+#' @name refvec-class
+refvecR6 = R6::R6Class("refvec",
   public = list(
     #' @details
     #' Class initializer. See also \code{?vec}.
     #' @param size The length of the vector.
-    #' @param type Storage type for the vector. Should be one of 'int', 'float', or 'double'.
+    #' @param type Storage type for the vector. Should be one of 'int' or 'double'.
     initialize = function(size=0, type="double")
     {
+      type = match.arg(tolower(type), TYPES_STR)
+      
+      size = check_is_natnum(size)
+      
+      private$type_str = type
+      private$type = type_str2int(type)
+      
       private$x = numeric(size)
-      private$type = type
     },
+    
+    
     
     #' @details
     #' Change the length of the vector object.
     #' @param size The new length.
     resize = function(size)
     {
-      private$x # TODO
+      size = check_is_natnum(size)
+      
+      private$x = numeric(size)
       invisible(self)
     },
     
+    
+    
     #' @details
-    #' Set the data in the vec object to point to the array in 'data'. See
-    #' also \code{?as_vec}.
-    #' @param data R vector.
-    set = function(data)
+    #' Set the data in the refvec object to point to the array in 'data'. See
+    #' also \code{?as_refvec}.
+    #' @param data R matrix.
+    inherit = function(data)
     {
+      if (!is.double(data))
+        storage.mode(data) = "double"
+      
       private$x = data
       invisible(self)
     },
+    
+    
+    
+    #' @details
+    #' Duplicate the matrix in a deep copy.
+    dupe = function()
+    {
+      self$clone(deep=TRUE)
+    },
+    
+    
     
     #' @details
     #' Print one-line information about the vector.
     info = function()
     {
-      cat("# vec")
+      cat("# refvec")
       cat(sprintf(" %d", length(private$x)))
       cat(" type=d")
       cat("\n")
       invisible(self)
     },
+    
+    
     
     #' @details
     #' Print the data.
@@ -58,6 +86,8 @@ vecR6 = R6::R6Class("vec",
       invisible(self)
     },
     
+    
+    
     #' @details
     #' Fill all entries with zero.
     fill_zero = function()
@@ -66,13 +96,7 @@ vecR6 = R6::R6Class("vec",
       invisible(self)
     },
     
-    #' @details
-    #' Fill all entries with one.
-    fill_one = function()
-    {
-      private$x[] = 1
-      invisible(self)
-    },
+    
     
     #' @details
     #' Fill all entries with supplied value.
@@ -83,6 +107,8 @@ vecR6 = R6::R6Class("vec",
       invisible(self)
     },
     
+    
+    
     #' @details
     #' Fill the vector (column-wise) with linearly-spaced values.
     #' @param start,stop Beginning/end of the linear spacing.
@@ -91,6 +117,8 @@ vecR6 = R6::R6Class("vec",
       private$x[] = seq(from=start, to=stop, length.out=length(private$x))
       invisible(self)
     },
+    
+    
     
     #' @details
     #' Scale all entries by the supplied value.
@@ -101,6 +129,8 @@ vecR6 = R6::R6Class("vec",
       invisible(self)
     },
     
+    
+    
     #' @details
     #' Reverse rows.
     rev = function()
@@ -109,17 +139,68 @@ vecR6 = R6::R6Class("vec",
       invisible(self)
     },
     
+    
+    
+    #' @details
+    #' Sum the vector.
+    #' @return Returns the sum.
+    sum = function()
+    {
+      sum(private$x)
+    },
+    
+    
+    
+    #' @details
+    #' Get element from the vector.
+    #' @param i Index (0-based).
+    get = function(i)
+    {
+      i = check_is_natnum(i)
+      private$x[i+1]
+    },
+    
+    
+    
+    #' @details
+    #' Set element of the vector.
+    #' @param i Index (0-based).
+    #' @param v Value.
+    set = function(i, v)
+    {
+      i = check_is_natnum(i)
+      v = check_is_number(v)
+      private$x[i+1, j+1] = v
+      invisible(self)
+    },
+    
+    
+    
     #' @details
     #' Returns length of the vector.
     size = function() length(private$x),
+    
+    
     
     #' @details
     #' Returns the external pointer data. For developers only.
     data_ptr = function() private$x,
     
     #' @details
+    #' Returns the integer code for the underlying storage type. For developers only.
+    get_type = function() private$type,
+    
+    #' @details
+    #' Returns the string code for the underlying storage type. For developers only.
+    get_type_str = function() private$type_str,
+    
+    
+    
+    #' @details
     #' Returns an R vector containing a copy of the class data.
     to_robj = function() private$x,
+    
+    
     
     #' @details
     #' Copies the values of the input to the class data. See also \code{?as_vec}.
@@ -133,29 +214,30 @@ vecR6 = R6::R6Class("vec",
   
   private = list(
     x = NULL,
-    type = ""
+    type = -1L,
+    type_str = ""
   )
 )
 
 
 
-#' vec
+#' refvec
 #' 
-#' Constructor for vec objects.
+#' Constructor for refvec objects.
 #' 
 #' @details
 #' Data is held in an external pointer.
 #' 
 #' @param size Length of the vector.
-#' @param type Storage type for the vector. Should be one of 'int', 'float', or 'double'.
-#' @return A vec class object.
+#' @param type Storage type for the vector. Should be one of 'int' or 'double'.
+#' @return A refvec class object.
 #' 
 #' @seealso \code{\link{vec-class}}
 #' 
 #' @export
-vec = function(size=0, type="double")
+refvec = function(size=0, type="double")
 {
-  vecR6$new(size=size, type=type)
+  refvecR6$new(size=size, type=type)
 }
 
 
@@ -169,14 +251,9 @@ vec = function(size=0, type="double")
 #' @return A vec object.
 #' 
 #' @export
-as_vec = function(x, copy=TRUE)
+as_refvec = function(x)
 {
-  ret = vec()
-  
-  if (isTRUE(copy))
-    ret$from_robj(x)
-  else
-    ret$set(x)
-  
+  ret = refvec()
+  ret$from_robj(x)
   ret
 }

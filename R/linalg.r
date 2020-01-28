@@ -15,7 +15,7 @@ linalg_crossprods = function(x, ret, alpha, xpose)
   else
     cp = alpha * crossprod(x$data_ptr())
   
-  ret = mat()
+  ret = refmat()
   ret$set(cp)
   
   if (invisiret)
