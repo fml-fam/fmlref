@@ -10,8 +10,8 @@ Depends:
 Imports:
     R6
 ByteCompile: yes
-URL: https://github.com/wrathematics/craze
-BugReports: https://github.com/wrathematics/craze/issues
+URL: https://github.com/wrathematics/fmlref
+BugReports: https://github.com/wrathematics/fmlref/issues
 Authors@R: c(
     person("Drew", "Schmidt", role=c("aut", "cre"), email="wrathematics@gmail.com")
     )
