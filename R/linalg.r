@@ -8,15 +8,13 @@ linalg_crossprods = function(x, ret, alpha, xpose)
   else
     invisiret = FALSE
   
-  n = x$ncols()
-  
   if (isTRUE(xpose))
     cp = alpha * tcrossprod(x$data_ptr())
   else
     cp = alpha * crossprod(x$data_ptr())
   
   ret = refmat()
-  ret$set(cp)
+  ret$inherit(cp)
   
   if (invisiret)
     invisible(ret)
@@ -42,14 +40,14 @@ NULL
 
 #' @rdname linalg-crossprod
 #' @export
-linalg_crossprod = function(x, ret=NULL, alpha=1)
+linalg_crossprod = function(alpha=1, x, ret=NULL)
 {
-  linalg_crossprods(x, ret, alpha, xpose=FALSE)
+  linalg_crossprods(x=x, ret=ret, alpha=alpha, xpose=FALSE)
 }
 
 #' @rdname linalg-crossprod
 #' @export
-linalg_tcrossprod = function(x, ret=NULL, alpha=1)
+linalg_tcrossprod = function(alpha=1, x, ret=NULL)
 {
-  linalg_crossprods(x, ret, alpha, xpose=TRUE)
+  linalg_crossprods(x=x, ret=ret, alpha=alpha, xpose=TRUE)
 }

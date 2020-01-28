@@ -1,9 +1,6 @@
-suppressMessages(library(craze))
-
-cmp = function(x, y) stopifnot(all.equal(x, y))
-
-size = 5
-x = vec(size)
+# ------------------------------------------------------------------------------
+# basics
+# ------------------------------------------------------------------------------
 
 cmp(x$size(), size)
 
@@ -13,7 +10,7 @@ cmp(x$size(), size)
 # fill
 # ------------------------------------------------------------------------------
 
-x$fill_one()
+x$fill_val(1)
 test = x$to_robj()
 truth = rep(1, size)
 cmp(test, truth)

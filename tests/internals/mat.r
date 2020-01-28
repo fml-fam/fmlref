@@ -1,10 +1,6 @@
-suppressMessages(library(craze))
-
-cmp = function(x, y) stopifnot(all.equal(x, y))
-
-m = 2
-n = 3
-x = mat(m, n)
+# ------------------------------------------------------------------------------
+# basics
+# ------------------------------------------------------------------------------
 
 cmp(x$dim(), c(m, n))
 
@@ -14,7 +10,7 @@ cmp(x$dim(), c(m, n))
 # fill
 # ------------------------------------------------------------------------------
 
-x$fill_one()
+x$fill_val(1)
 test = x$to_robj()
 truth = matrix(1, m, n)
 cmp(test, truth)
